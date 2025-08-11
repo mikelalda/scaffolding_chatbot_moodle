@@ -43,12 +43,19 @@ class ChatbotAPI extends \core_external\external_api {
         // Verificar el contexto del bloque y obtener la configuración
         $blockinstance = $DB->get_record('block', ['id' => $blockid], '*', MUST_EXIST);
         $blockcontext = \context_block::instance($blockinstance->id);
-        
-        // Comprobación de capacidades: Asegura que el usuario pueda interactuar con el bot (ej. moodle/block:view)
         \require_capability('moodle/block:view', $blockcontext);
 
-        // Obtener la configuración JSON almacenada en la instancia del bloque
-        $chatbot_config_json = $blockinstance->configdata['chatbot_config_json'] ?? null;
+        // Deserializar la configuración del bloque
+        $configdata = [];
+        if (!empty($blockinstance->configdata)) {
+            $configdata = unserialize(base64_decode($blockinstance->configdata));
+        }
+
+        // Obtener el sectionid actual (puedes pasarlo como parámetro extra en la llamada AJAX)
+        $sectionid = optional_param('section', 0, PARAM_INT);
+
+        // Leer el JSON correspondiente a la sección
+        $chatbot_config_json = $configdata['chatbot_config_json_by_section'][$sectionid] ?? null;
         if (empty($chatbot_config_json)) {
             throw new \moodle_exception(get_string('noconfigset', 'block_course_chatbot'), 'block_course_chatbot');
         }

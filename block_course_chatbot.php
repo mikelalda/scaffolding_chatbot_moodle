@@ -1,10 +1,5 @@
 <?php
 
-defined('MOODLE_INTERNAL') || die();
-
-require_once(__DIR__ . '/classes/ChatbotLogic.php');
-require_once(__DIR__ . '/classes/form/ConfigForm.php');
-
 class block_course_chatbot extends block_base {
     public function init() {
         $this->title = get_string('pluginname', 'block_course_chatbot');
@@ -17,37 +12,32 @@ class block_course_chatbot extends block_base {
 
         $this->content = new stdClass();
         $this->content->text = '';
-        $this->content->footer = '';
 
-        // Obtener la configuración JSON guardada para esta instancia del bloque
-        // La configuración se guarda en $this->config->chatbot_config_json
-        $chatbot_config_json = $this->config->chatbot_config_json ?? null;
+        $display_name = $this->config->chatbot_display_name ?? get_string('defaultchatbotname', 'block_course_chatbot');
 
-        // Si no hay configuración JSON, mostrar un mensaje al profesor.
+        // Obtener el sectionid actual (puedes ajustar esto según tu lógica)
+        $sectionid = optional_param('section', 0, PARAM_INT);
+        $chatbot_config_json = $this->config->chatbot_config_json_by_section[$sectionid] ?? null;
+
         if (empty($chatbot_config_json)) {
             $this->content->text = html_writer::tag('p', get_string('noconfigset', 'block_course_chatbot'));
             return $this->content;
         }
 
-        // Crear una instancia de la lógica del chatbot con la configuración JSON
-        // Esto es un placeholder; la lógica real se manejará vía AJAX en ChatbotAPI.php
-        // Aquí solo necesitamos pasar la configuración al template JavaScript.
-        $config_data = json_decode($chatbot_config_json, true);
+        json_decode($chatbot_config_json);
         if (json_last_error() !== JSON_ERROR_NONE) {
             $this->content->text = html_writer::tag('p', get_string('invalidconfig', 'block_course_chatbot'));
             return $this->content;
         }
 
-        // Preparar datos para la plantilla Mustache
         $data = [
-            'blockid' => $this->instance->id, // ID de la instancia del bloque
-            'courseid' => $this->page->course->id, // ID del curso
-            'sectionid' => $this->instance->parentcontextid, // Esto necesita ser ajustado para obtener el ID de la sección correcta
+            'blockid' => $this->instance->id,
+            'courseid' => $this->page->course->id,
+            'displayname' => $display_name,
             'chatbot_initial_message' => get_string('initialmessage', 'block_course_chatbot'),
-            'config_json' => $chatbot_config_json // Pasa la configuración JSON al JavaScript
+            'config_json' => $chatbot_config_json
         ];
-        
-        // Renderizar el bloque usando la plantilla Mustache
+
         $renderer = $this->page->get_renderer('block_course_chatbot');
         $this->content->text = $renderer->render_from_template('block_course_chatbot/chatbot_block', $data);
 
@@ -55,7 +45,8 @@ class block_course_chatbot extends block_base {
     }
 
     /**
-     * Define si el bloque tiene una página de configuración o no.
+     * Le dice a Moodle que este bloque tiene un formulario de configuración.
+     * Moodle buscará automáticamente un archivo 'edit_form.php'.
      * @return bool
      */
     public function has_config() {
@@ -63,48 +54,52 @@ class block_course_chatbot extends block_base {
     }
 
     /**
-     * Define si el bloque puede ser añadido múltiples veces a la misma página.
+     * Permite que el bloque sea añadido múltiples veces a la misma página del curso.
      * @return bool
      */
     public function instance_allow_multiple() {
         return true;
     }
-
+    
     /**
-     * Especifica dónde se puede añadir el bloque (por ejemplo, a cursos de formato de temas).
-     * @return array
+     * Carga el JavaScript necesario para el bloque, solo si está configurado.
      */
-    public function applicable_formats() {
-        return [
-            'course-view-topics' => true,
-            'course-view-weeks' => true,
-            'course-view-grid' => true, // Si usas el formato de curso de cuadrícula
-            // Puedes añadir otros formatos si es necesario
-        ];
+    public function get_page_params() {
+        // Carga el JavaScript solo si el bloque está configurado.
+        if (!empty($this->config->chatbot_config_json)) {
+            $this->page->requires->js_call_amd('block_course_chatbot/chatbot', 'init', [$this->instance->id]);
+        }
     }
 
-    /**
-     * Retorna el formulario de configuración para esta instancia del bloque.
-     * @param int $contextid Context ID.
-     * @return block_course_chatbot_config_form
-     */
-    public function get_form() {
-        return new block_course_chatbot\form\ConfigForm();
-    }
-
-    /**
-     * Se llama cuando la configuración del bloque se actualiza.
-     * Guarda el JSON de configuración directamente en $this->config
-     * @param array $data Configuration data.
-     */
     public function instance_config_save($data, $dontdelete = false) {
-        $data = file_get_contents($data['chatbot_config_json_file']['tmp_name']);
-        $this->config->chatbot_config_json = $data;
-        return true;
-    }
+        $json = '';
+        $sectionid = $data->config_chatbot_sectionid ?? 0;
 
-    // Asegúrate de que los archivos JavaScript se carguen
-    public function get_javascript_footer() {
-        $this->page->requires->js_call_amd('block_course_chatbot/chatbot', 'init', [$this->instance->id]);
+        $fs = get_file_storage();
+        $context = $this->context;
+        $files = $fs->get_area_files(
+            $context->id,
+            'block_course_chatbot',
+            'config_chatbot_config_json_file',
+            0,
+            'itemid, filepath, filename',
+            false
+        );
+        foreach ($files as $file) {
+            if ($file->get_filename() !== '.') {
+                $json = $file->get_content();
+                break;
+            }
+        }
+
+        if ($this->config === null) {
+            $this->config = new stdClass();
+        }
+        if (!isset($this->config->chatbot_config_json_by_section)) {
+            $this->config->chatbot_config_json_by_section = [];
+        }
+        $this->config->chatbot_config_json_by_section[$sectionid] = $json;
+        $this->config->chatbot_display_name = $data->config_chatbot_display_name ?? get_string('defaultchatbotname', 'block_course_chatbot');
+        return true;
     }
 }
