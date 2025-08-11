@@ -1,0 +1,21 @@
+<div class="block_course_chatbot" id="block_course_chatbot_{{blockid}}">
+    <div class="chatbot-header">
+        <h4 class="chatbot-title">{{#str}}coursetopichatbot, block_course_chatbot{{/str}}</h4>
+    </div>
+    <div class="chatbot-body">
+        <div class="chatbot-messages" id="chatbot-messages-{{blockid}}">
+            <div class="chatbot-message bot-message">{{chatbot_initial_message}}</div>
+        </div>
+        <div class="chatbot-input-area">
+            <input type="text" id="chatbot-input-{{blockid}}" placeholder="{{#str}}typemessage, block_course_chatbot{{/str}}" class="form-control">
+            <button id="chatbot-send-{{blockid}}" class="btn btn-primary">{{#str}}sendmessage, block_course_chatbot{{/str}}</button>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    // Los datos se pasan directamente aquí para que JavaScript los recoja.
+    // Esto es más eficiente que hacer otra llamada AJAX solo para la configuración inicial.
+    var chatbotConfig_{{blockid}} = JSON.parse('{{{ config_json }}}');
+    var blockId_{{blockid}} = {{blockid}};
+</script>
