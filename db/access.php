@@ -14,7 +14,7 @@ $capabilities = [
     ],
     'block/course_chatbot:view' => [
         'captype' => 'read',
-        'contextlevel' => CONTEXT_BLOCK, // Se aplica a instancias de bloques
+        'contextlevel' => CONTEXT_BLOCK,
         'archetypes' => [
             'student' => CAP_ALLOW,
             'teacher' => CAP_ALLOW,

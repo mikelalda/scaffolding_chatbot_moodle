@@ -5,6 +5,10 @@ class block_course_chatbot extends block_base {
         $this->title = get_string('pluginname', 'block_course_chatbot');
     }
 
+    public function has_config() {
+        return true;
+    }
+
     public function get_content() {
         if ($this->content !== null) {
             return $this->content;
@@ -14,28 +18,18 @@ class block_course_chatbot extends block_base {
         $this->content->text = '';
 
         $display_name = $this->config->chatbot_display_name ?? get_string('defaultchatbotname', 'block_course_chatbot');
+        $units = $this->config->units ?? [];
 
-        // Obtener el sectionid actual (puedes ajustar esto según tu lógica)
-        $sectionid = optional_param('section', 0, PARAM_INT);
-        $chatbot_config_json = $this->config->chatbot_config_json_by_section[$sectionid] ?? null;
-
-        if (empty($chatbot_config_json)) {
-            $this->content->text = html_writer::tag('p', get_string('noconfigset', 'block_course_chatbot'));
-            return $this->content;
-        }
-
-        json_decode($chatbot_config_json);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->content->text = html_writer::tag('p', get_string('invalidconfig', 'block_course_chatbot'));
+        if (empty($units)) {
+            $this->content->text = html_writer::tag('p', get_string('noconfigset_single', 'block_course_chatbot'));
             return $this->content;
         }
 
         $data = [
             'blockid' => $this->instance->id,
-            'courseid' => $this->page->course->id,
             'displayname' => $display_name,
+            'units' => array_values($units),
             'chatbot_initial_message' => get_string('initialmessage', 'block_course_chatbot'),
-            'config_json' => $chatbot_config_json
         ];
 
         $renderer = $this->page->get_renderer('block_course_chatbot');
@@ -44,62 +38,74 @@ class block_course_chatbot extends block_base {
         return $this->content;
     }
 
-    /**
-     * Le dice a Moodle que este bloque tiene un formulario de configuración.
-     * Moodle buscará automáticamente un archivo 'edit_form.php'.
-     * @return bool
-     */
-    public function has_config() {
-        return true;
-    }
-
-    /**
-     * Permite que el bloque sea añadido múltiples veces a la misma página del curso.
-     * @return bool
-     */
-    public function instance_allow_multiple() {
-        return true;
-    }
-    
-    /**
-     * Carga el JavaScript necesario para el bloque, solo si está configurado.
-     */
-    public function get_page_params() {
-        // Carga el JavaScript solo si el bloque está configurado.
-        if (!empty($this->config->chatbot_config_json)) {
-            $this->page->requires->js_call_amd('block_course_chatbot/chatbot', 'init', [$this->instance->id]);
+    public function after_get_content() {
+        if (!empty($this->config->units)) {
+            $js_params = [
+                'blockid' => $this->instance->id,
+                'error_string' => get_string('errorprocessing', 'block_course_chatbot'),
+                'choose_unit_title' => get_string('chooseunit', 'block_course_chatbot')
+            ];
+            $this->page->requires->js_call_amd('block_course_chatbot/chatbot', 'init', [$js_params]);
         }
+        return parent::after_get_content();
     }
 
     public function instance_config_save($data, $dontdelete = false) {
-        $json = '';
-        $sectionid = $data->config_chatbot_sectionid ?? 0;
-
-        $fs = get_file_storage();
-        $context = $this->context;
-        $files = $fs->get_area_files(
-            $context->id,
-            'block_course_chatbot',
-            'config_chatbot_config_json_file',
-            0,
-            'itemid, filepath, filename',
-            false
-        );
-        foreach ($files as $file) {
-            if ($file->get_filename() !== '.') {
-                $json = $file->get_content();
-                break;
-            }
-        }
-
         if ($this->config === null) {
             $this->config = new stdClass();
         }
-        if (!isset($this->config->chatbot_config_json_by_section)) {
-            $this->config->chatbot_config_json_by_section = [];
-        }
-        $this->config->chatbot_config_json_by_section[$sectionid] = $json;
+
+        $data = (object)$data;
         $this->config->chatbot_display_name = $data->config_chatbot_display_name ?? get_string('defaultchatbotname', 'block_course_chatbot');
+        
+        $old_units = $this->config->units ?? [];
+        $new_units = [];
+        $fs = get_file_storage();
+        $unitcount = 5;
+
+        for ($i = 0; $i < $unitcount; $i++) {
+            $unitname = trim($data->{'unitname['.$i.']'} ?? '');
+            $draftitemid = $data->{'jsonfile['.$i.']'} ?? null;
+
+            if (empty($unitname)) {
+                continue; // Skip empty slots.
+            }
+
+            $json_content = null;
+
+            // Priority 1: A new file was uploaded.
+            if ($draftitemid) {
+                $usercontext = \context_user::instance($GLOBALS['USER']->id);
+                $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'sortorder', false);
+                if ($files) {
+                    $file = reset($files);
+                    $content = $file->get_content();
+                    if (json_decode($content) !== null) {
+                        $json_content = $content;
+                    }
+                }
+            }
+
+            // Priority 2: No new file, so keep the old JSON if it exists for this slot.
+            if (is_null($json_content) && isset($old_units[$i])) {
+                $json_content = $old_units[$i]->json;
+            }
+
+            // We must have JSON content to save the unit.
+            if (!is_null($json_content)) {
+                $new_units[$i] = (object)[
+                    'name' => $unitname,
+                    'json' => $json_content
+                ];
+            }
+        }
+        
+        $this->config->units = array_values($new_units); // Re-index the array.
+        
+        return parent::instance_config_save((object)$this->config, $dontdelete);
+    }
+
+    public function instance_allow_multiple() {
         return true;
     }
 }

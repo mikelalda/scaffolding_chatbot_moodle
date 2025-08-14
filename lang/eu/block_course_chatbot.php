@@ -1,24 +1,19 @@
 <?php
-
-defined('MOODLE_INTERNAL') || die();
-
-$string['pluginname'] = 'Ikastaroaren Txatbot-a';
-$string['pluginname_desc'] = 'Ikastaro bakoitzeko gaiaren arabera konfiguratu daitekeen txatbot blokea, JSON datu pertsonalizatuekin.';
-$string['coursetopichatbot'] = 'Ikastaroaren Gaiko Txatbot-a';
-$string['settings'] = 'Txatbotaren Ezarpenak';
-$string['uploadjson'] = 'Igo Txatbotaren Konfigurazioa (JSON)';
-$string['uploadjson_help'] = 'Igo JSON fitxategi bat txatbotaren ohiko galderak, ebazpen urratsak, etab. dituena.';
-$string['pastejson'] = 'Edo itsatsi JSON konfigurazioa zuzenean';
-$string['pastejson_help'] = 'JSON edukia zuzenean hemen itsatsi dezakezu fitxategi bat igo beharrean.';
-$string['jsoninfo'] = 'JSON konfigurazioak txatbotaren ezagutza-basea (ohiko galderak, arazoak ebazteko urratsak) definitzen du. Kontsultatu dokumentazioa espero den JSON egitura ikusteko.';
-$string['jsonrequired'] = 'JSON fitxategi bat igo behar duzu edo JSON testua itsatsi.';
-$string['invalidjsonfile'] = 'Igotako fitxategia ez da JSON baliozkoa: {$a}';
-$string['invalidjsontext'] = 'Itsatsitako testua ez da JSON baliozkoa: {$a}';
-$string['noconfigset'] = 'Ez da txatbotaren konfiguraziorik ezarri bloke honetarako. Konfiguratu mesedez.';
-$string['invalidconfig'] = 'Kargatutako txatbotaren konfigurazioa ez da baliozkoa. Egiaztatu JSON datuak: {$a}';
-$string['initialmessage'] = 'Kaixo! Zure ikastaroaren laguntzailea naiz. Nola lagundu diezazuket gaur?';
-$string['displayname'] = 'Txatbotaren Bistaratzeko Izena';
-$string['defaultchatbotname'] = 'Ikastaroaren Laguntzailea';
-$string['sendmessage'] = 'Bidali';
+$string['pluginname'] = 'Ikastaroko Chatbota';
+$string['defaultchatbotname'] = 'Ikastaroko Laguntzailea';
+$string['noconfigset'] = 'Txatbota ez dago atal honetarako konfiguratuta.';
+$string['invalidconfig'] = 'Txatbot honen konfigurazioa ez da zuzena.';
+$string['initialmessage'] = 'Kaixo! Nola lagun diezazuket gai honekin?';
 $string['typemessage'] = 'Idatzi zure mezua...';
-$string['welcome'] = 'Ongi etorri!';
+$string['settings'] = 'Chatbot-aren Ezarpenak';
+$string['displayname'] = 'Chatbot-aren Bistaratzeko Izena';
+$string['section'] = 'Ikastaroaren atala';
+$string['section0'] = 'Orokorra';
+$string['topic'] = 'Gaia';
+$string['section_help'] = 'Hautatu konfigurazio hau aplikatuko zaion ikastaroaren atala.';
+$string['uploadjson'] = 'Konfigurazio Fitxategia (.json)';
+$string['uploadjson_help'] = 'Igo .json fitxategi bat, txatbotaren galderak (FAQ) eta ebazpen-ariketak (resolucion) definitzen dituena. Fitxategi honek hautatutako atalerako dagoen konfigurazioa ordezkatuko du.';
+$string['errorprocessing'] = 'Errore bat gertatu da zure mezua prozesatzean';
+$string['notunderstood'] = 'Sentitzen dut, ez dut zure galdera ulertu. Berriz formulatu dezakezu? "Praktikatu" ere idatz dezakezu ariketa bat hasteko.';
+$string['noresolution'] = 'Sentitzen dut, ez dago praktika-ariketarik konfiguratuta gai honetarako.';
+$string['invalidjson'] = 'Igotako fitxategiak ez du baliozko JSONik.';
